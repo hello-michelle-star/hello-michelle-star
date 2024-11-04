@@ -1,0 +1,366 @@
+---
+title: 'STAT 1261/2260: Principles of Data Science'
+subtitle: Homework 3
+output:
+  html_document:
+    df_print: paged
+  word_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, fig.width=6, fig.height=4, out.width = "60%", fig.align = "center", cache=T) 
+```
+
+#### Questions 1 (5 points): Exercise 4 (Lab 3):
+Recreate the figure about Joseph by collecting all the related code in Lab 3. Show both your code and the plot.
+
+```{r,message=FALSE}
+library(tidyverse)
+library(mdsr)
+library(babynames)
+library(Hmisc) 
+```
+```{r}
+
+# Create the data for Joseph
+BabynamesDist <- make_babynames_dist()
+
+joseph <- BabynamesDist %>% 
+  filter(name == "Joseph", sex == "M")
+
+# Create the plot
+name_plot <- ggplot(data = joseph, aes(x = year))
+
+name_plot <- name_plot +
+  geom_bar(aes(y = count_thousands * alive_prob),
+           stat = "identity", 
+           fill = "#b2d7e9", colour = "white")
+
+
+name_plot <- name_plot + geom_line(aes(y = count_thousands), linewidth = 2) 
+
+
+name_plot <- name_plot +
+  ylab("Number of People (thousands)") + 
+  xlab(NULL)
+
+# Calculate median year of birth
+median_yob <-
+  with(joseph, wtd.quantile(year, est_alive_today, probs = 0.5))
+median_yob
+
+
+name_plot <- name_plot +
+  geom_bar(stat = "identity", colour = "white", fill = "#008fd5",
+           aes(y = ifelse(year == wtd.quantile(year, est_alive_today, probs = 0.5), est_alive_today/1000, 0)))
+
+
+name_plot +
+  ggtitle("Age Distribution of American Boys Named Joseph") +
+  geom_text(x = 1935, y = 40, label = "Number of Josephs \n born each year") +
+  geom_text(x = 1915, y = 13, label =
+              "Number of Josephs \n born each year \n estimated to be alive \n on 1/1/2014",
+            colour = "#b2d7e9") +
+  geom_text(x = 2003, y = 40,
+            label = "The median \n living Joseph \n is 37 years old",
+            colour = "darkgray") +
+  geom_curve(x = 1995, xend = 1974, y = 40, yend = 24,
+             arrow = arrow(length = unit(0.3,"cm")), curvature = 0.5) + ylim(0, 42)
+
+
+```
+
+
+#### Question 2 (5 points): Exercise 5 (Lab 3)
+Recreate the name plot for Kristina (girl) and add necessary context. Make sure you adjust the positions of the text labels so that they are in the appropriate places in the plot. **Assume the year that you create the plot is 2012.**
+
+Hint: You need to adjust `ylim` to make the plot look more appropriate. 
+
+```{r}
+# Libraries required
+library(tidyverse)
+library(mdsr)
+library(babynames)
+library(Hmisc)
+
+# Load Babynames distribution data %>% 
+BabynamesDist <- make_babynames_dist()
+
+# Filter the data for Kristina (female)
+kristina <- BabynamesDist %>%
+  filter(name == "Kristina", sex == "F")
+
+# Initial ggplot object with Kristina data and year on the x-axis
+kristina_plot <- ggplot(data = kristina, aes(x = year))
+
+# Add bar plot for the estimated number of Kristinas alive in 2012
+kristina_plot <- kristina_plot +
+  geom_bar(aes(y = count_thousands * alive_prob), 
+           stat = "identity", 
+           fill = "#f1b2d7", 
+           colour = "white")
+
+# Add line plot for the number of Kristinas born each year
+kristina_plot <- kristina_plot + 
+  geom_line(aes(y = count_thousands), 
+            colour = "black", 
+            linewidth = 2)  # Thick black line
+
+# Add informative y-axis label and remove the x-axis label
+kristina_plot <- kristina_plot +
+  ylab("Number of People (thousands)") + 
+  xlab(NULL)
+
+# Calculate the median year of birth for Kristinas alive in 2012
+median_yob_kristina <- with(kristina, wtd.quantile(year, est_alive_today, probs = 0.5))
+
+# Highlight the median year with a blue bar
+kristina_plot <- kristina_plot +
+  geom_bar(stat = "identity", 
+           colour = "white", 
+           fill = "#008fd5",
+           aes(y = ifelse(year == median_yob_kristina, 
+                          est_alive_today / 1000, 0)))
+
+# Add title, text annotations, and curve
+kristina_plot +
+  ggtitle("Age Distribution of American Girls Named Kristina") +
+  
+  # Text for "Number of Kristinas born each year"
+  geom_text(x = 1940, y = 9, label = "Number of Kristinas \n born each year") +
+  
+  # Text for "Number of Kristinas estimated to be alive in 2012"
+  geom_text(x = 1940, y = 3, label = 
+              "Number of Kristinas \n born each year \n estimated to be alive \n on 1/1/2012",
+            colour = "#f1b2d7") +
+  
+  # Text for median age
+  geom_text(x = 2003, y = 8.75,
+            label = "The median \n living Kristina \n is 28 years old",
+            colour = "darkgray") +
+  
+  # Curve pointing to the median age
+  geom_curve(x = 1994, xend = 1983, y = 8, yend = 5,
+             arrow = arrow(length = unit(0.3,"cm")), curvature = 0.5) + 
+  
+  # Adjust ylim for better presentation
+  ylim(0, 10)
+
+```
+
+
+### <span style="color:green"> The Stroke Data </span>
+According to the World Health Organization (WHO) stroke is the 2nd leading cause of death globally, responsible for approximately 11% of total deaths.
+
+This dataset is used to predict whether a patient is likely to get stroke based on the attributes like gender, age, various diseases, and smoking status. Each row in the data provides relevant information about the patient.
+
+#### Variables Information
+##### Features (predictors):
+1) `id`: unique identifier    
+2) `gender`: "Male", "Female" or "Other"    
+3) `age`: age of the patient    
+4) `hypertension`: 0 if the patient doesn't have hypertension, 1 if the patient has hypertension    
+5) `heart_disease`: 0 if the patient doesn't have any heart diseases, 1 if the patient has a heart disease    
+6) `ever_married`: "No" or "Yes"    
+7) `work_type`: "children", "Govt_jov", "Never_worked", "Private" or "Self-employed"    
+8) `Residence_type`: "Rural" or "Urban"    
+9) `avg_glucose_level`: average glucose level in blood    
+10) `bmi`: body mass index    
+11) `smoking_status`: "formerly smoked", "never smoked", "smokes" or "Unknown". "Unknown" means that the information is unavailable for this patient       
+
+##### Target (response):
+12) `stroke`: 1 if the patient had a stroke or 0 if not
+
+```{r,message=FALSE}
+library(tidyverse)
+data <- read_csv("~/Desktop/strokedata.csv")
+```
+
+#### Understanding the data
+
+```{r}
+glimpse(data)
+```
+
+Note that `bmi` is coded as a character variable. Let us convert it into a numeric variable.
+
+```{r}
+data$bmi <- as.numeric(data$bmi)
+```
+Don't panic. These NA values were converted from "NA", the original format of missing data.
+
+Let us check missing values for all columns.
+
+```{r}
+colSums(is.na(data))
+```
+
+Only `bmi` has missing values. Let us delete these observations for now. Later on, we will learn how to impute missing values.
+
+```{r}
+data <- data[!is.na(data$bmi),]
+colSums(is.na(data))
+```
+```{r}
+dim(data)
+```
+
+Observing the output of `glimpse()`, we see that `stroke`, `hypertension`, and `heart_disease` were coded as numeric variables. This is not ideal because they are actually binary categorical variables. Let us convert them into factor variables.
+
+```{r}
+data <- transform(data, stroke=as.factor(stroke), 
+                  hypertension=as.factor(hypertension),
+                  heart_disease=as.factor(heart_disease))
+glimpse(data[,c(4,5,12)]) # Show info about these three columns only
+```
+
+### Question 3 Categorical Variables (20 points)
+General requirement: Use `ggplot2` functions only
+
+#### 3.1 Create a horizontal bar graph for `stroke` (4 points)
+Requirements:
+1. Should be a horizontal bar graph
+2. Add a title "Bar Graph for stroke"
+```{r}
+library(ggplot2)
+
+ggplot(data, aes(x = factor(stroke))) +
+  geom_bar() +
+  coord_flip() +
+  labs(title = "Bar Graph for stroke", x = "Stroke", y = "Count")
+```
+
+
+#### 3.2 Create a pie graph (using `ggplot2`) for gender (4 points)
+Requirements:
+1. Remove x and y axis labels
+2. Add a title "Pie Chart for gender"
+```{r}
+ggplot(data, aes(x = "x", fill = gender)) +
+  geom_bar(width = 1) +
+  coord_polar("y") +
+  theme_void() 
+  labs(title = "Pie Chart for gender", x = NULL, y = NULL)
+```
+
+
+#### 3.3 Create a Coxcomb chart for `work_type` (4 points)
+```{r}
+ggplot(data, aes(x = work_type, fill = work_type)) +
+  geom_bar(width = 1) +
+  theme(axis.title.y=element_blank(),axis.text.y=element_blank(),axis.ticks.y=element_blank()) +
+  coord_polar("x") +
+  labs(title = "Coxcomb Chart for Work Type", x = NULL, y = NULL)
+  
+```
+
+
+#### 3.4 Create a bar graph for `smoking_status` and `stroke` (4 points)
+Requirements:
+
+1. Use the 'dodge' position.
+2. Compare the distribution of `stroke` among different groups of `smoking_status`.
+3. The x-axis label should be "Smoking Status".
+
+```{r}
+ggplot(data, aes(x = factor(smoking_status), fill = stroke)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Stroke by Smoking Status", 
+       x = "Smoking Status", y = "Count") 
+```
+
+
+#### 3.5 Creat a bar graph for `work_type` and `stroke` (4 points)
+Requirements:
+1. It should be a stacked bar graph that compares the distribution of work_type for different stroke categories.
+2. The height of each bar should be 1.
+```{r}
+ggplot(data, aes(x = work_type, fill = stroke)) +
+  geom_bar(position = "fill") +
+  labs(title = "Distribution of Work Type by Stroke",
+       x = "Stroke",
+       y = "Proportion")
+```
+
+
+### Question 4 Numeric Variables (20 points)
+#### 4.1 Create a histogram for `age`. (4 points)
+Requirements:
+
+1. Let the bar color be 'steelblue'
+2. Let the boundary color of the bar be 'white'
+3. Use 20 bins
+```{r}
+ggplot(data, aes(x = age)) +
+  geom_histogram(binwidth = (max(data$age) - min(data$age)) / 20, 
+                 fill = 'steelblue', color = 'white') + 
+  labs(title = "Histogram for Age", x = "Age", y = "Count") +  
+  theme_minimal() 
+```
+
+
+#### 4.2 Create a density plot to compare the distribtion of `age` for different `stroke` groups. (4 points)
+Requirements:
+
+1. Let `alpha=0.5`.
+2. Let `bw=5`.
+
+```{r}
+ggplot(data, aes(x = age, fill = factor(stroke))) +
+  geom_density(alpha = 0.5, bw = 5) +  
+  labs(title = "Density Plot for Age by Stroke Groups", 
+       x = "Age", y = "Density", fill = "Stroke") +  
+  theme_minimal() 
+```
+
+
+#### 4.3 Create a side-by-side boxplot for `stroke` and `avg_glucose_level` (4 points)
+Requirements:
+
+1. Should be a horizontal boxplot
+2. Name the x-axis(after flipping the axes) label "Average Glucose Level"
+
+```{r}
+ggplot(data, aes(x = factor(stroke), y = avg_glucose_level)) +
+  geom_boxplot() +
+  coord_flip() +  
+  labs(title = "Boxplot of Stroke and Average Glucose Level", 
+       x = "Stroke", y = "Average Glucose Level") +  
+  theme_minimal()
+```
+
+
+#### 4.4 Create a scatterplot for `bmi` and `avg_glucose_level` (4 points)
+Requirements:
+
+1. `bmi` should be the x variable.
+2. Let `alpha=0.2`.
+3. Use 'purple` for the points.
+4. Label the y-axis "Average Glucose Level"
+
+```{r}
+ggplot(data, aes(x = bmi, y = avg_glucose_level)) +
+  geom_point(alpha = 0.2, color = "purple") +  
+  labs(title = "Scatterplot of BMI and Average Glucose Level", 
+       x = "BMI", y = "Average Glucose Level") +  
+  theme_minimal() 
+```
+
+
+#### 4.5 Create a scatterplot for `age` and `bmi` (4 points)
+Requirements:
+
+1. `age` should be the x variable.
+2. Let `alpha=0.2`.
+3. Fit and overlay a linear regression line for each "stroke" group.
+
+```{r}
+ggplot(data, aes(x = age, y = bmi)) +
+  geom_point(alpha = 0.2, color = "green") + 
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Scatterplot of Age and BMI", 
+       x = "Age", y = "BMI") +  
+  theme_minimal() 
+```
+
